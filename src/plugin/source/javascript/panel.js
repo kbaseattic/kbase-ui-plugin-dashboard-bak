@@ -124,11 +124,11 @@ define([
                             R.send('app', 'title', rendered.title);
                             // create widgets.
                             children = rendered.widgets;
-                            Promise.all(children.map(function (w) {
+                            Promise.settle(children.map(function (w) {
                                 return w.widget.init(w.config);
                             }))
                                 .then(function () {
-                                    Promise.all(children.map(function (w) {
+                                    Promise.settle(children.map(function (w) {
                                         return w.widget.attach($('#' + w.id).get(0));
                                     }))
                                         .then(function (results) {
@@ -167,7 +167,7 @@ define([
                     // 
                     // NB: the widget connector, for now, needs the params
                     // for attachment.
-                    Promise.all(children.map(function (wc) {
+                    Promise.settle(children.map(function (wc) {
                         return wc.widget.start(params);
                     }))
                         .then(function (results) {
@@ -181,7 +181,7 @@ define([
             }
             function stop() {
                 return new Promise(function (resolve, reject) {
-                    Promise.all(children.map(function (wc) {
+                    Promise.settle(children.map(function (wc) {
                         return wc.widget.stop();
                     }))
                         .then(function (results) {
@@ -195,7 +195,7 @@ define([
             }
             function detach() {
                 return new Promise(function (resolve, reject) {
-                    Promise.all(children.map(function (wc) {
+                    Promise.settle(children.map(function (wc) {
                         return wc.widget.detach();
                     }))
                         .then(function (results) {
