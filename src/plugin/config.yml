@@ -2,7 +2,7 @@
 ---
 package:
     author: Erik Pearson
-    name: dashboard_panel
+    name: dashboard
     description: The dashboard panel and associated widgets
     date: August 6, 2015
     version: 0.0.1

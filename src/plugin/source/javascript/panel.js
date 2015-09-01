@@ -83,6 +83,13 @@ define([
                                         viewState: panelState
                                     },
                                     module: 'kb_widget_dashboard_metrics'
+                                })}),
+                            div({id: addWidget({
+                                    name: 'collaborators',
+                                    config: {
+                                        viewState: panelState
+                                    },
+                                    module: 'kb_widget_dashboard_collaborators'
                                 })})
                         ])
                     ])

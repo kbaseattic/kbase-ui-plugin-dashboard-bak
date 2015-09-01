@@ -219,8 +219,6 @@ define([
                             this.kbservice.getMethods()])
                             .spread(function (narratives, apps, methods) {
                                 // Set the apps as state, and then create a map of app names to app spec.
-                            console.log(narratives);
-                            console.log(R.getUsername());
                                 this.setState('apps', apps);
                                 var appsMap = {};
                                 apps.forEach(function (app) {

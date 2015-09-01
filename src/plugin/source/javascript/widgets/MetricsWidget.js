@@ -295,8 +295,8 @@ define([
                 value: function () {
                     return new Promise(function (resolve, reject) {
                         Promise.all([data.getJSON({path: 'metrics', file: 'narrative_histogram'}),
-                              data.getJSON({path: 'metrics', file:'narrative_sharing_histogram'}),
-                            this.viewState.whenItem('narratives', 10000)
+                            data.getJSON({path: 'metrics', file: 'narrative_sharing_histogram'}),
+                            this.viewState.whenItem('narratives', 60000)
                         ])
                             .then(function (data) {
                                 this.setState('narrativesStats', data[0]);

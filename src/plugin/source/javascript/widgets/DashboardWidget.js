@@ -7,9 +7,11 @@ define([
     'kb.session', 
     'kb.utils', 
     'kb_user_profile', 
-    'postal'
+    'postal',
+    'kb.logger',
+    'kb_plugin_dashboard'
 ],
-    function (nunjucks, $, Promise, html, R, Session, Utils, UserProfile, Postal) {
+    function (nunjucks, $, Promise, html, R, Session, Utils, UserProfile, Postal, Logger, Plugin) {
         "use strict";
         var DashboardWidget = Object.create({}, {
             // The init function interfaces this object with the caller, and sets up any 
@@ -87,8 +89,8 @@ define([
                     //   /src/widgets/WIDGETNAME/templates
                     this.templates = {};
                     var loaders = [                        
-                        new nunjucks.WebLoader('/plugins/dashboard/source/javascript/widgets/' + this.widgetName + '/templates', true),
-                        new nunjucks.WebLoader('/plugins/dashboard/source/javascript/widgets/DashboardWidget/templates', true)
+                        new nunjucks.WebLoader(Plugin.plugin.path + '/javascript/widgets/' + this.widgetName + '/templates', true),
+                        new nunjucks.WebLoader(Plugin.plugin.path + '/javascript/widgets/DashboardWidget/templates', true)
                     ];
                     this.templates.env = new nunjucks.Environment(loaders, {
                         'autoescape': false
@@ -416,18 +418,26 @@ define([
             onHeartbeat: {
                 value: function (data) {
                     if (this.status === 'dirty') {
+                        // make sure the flag is reset syncronously.
+                        // If we reset the flag in refresh().then(), as we 
+                        // did at one time, there is race condition -- another
+                        // heartbeat may occur during the refresh handling and 
+                        // trigger a second refresh (since the widget is still 
+                        // dirty.)
+                        this.status = 'clean';
                         this.refresh()
                             .then(function () {
-                                this.status = 'clean';
+                                // anything
                             }.bind(this))
                             .catch(function (err) {
                                 this.setError(err);
                             }.bind(this))
                             .done();
                     } else if (this.status === 'error') {
+                        this.status = 'errorshown';
                         this.refresh()
                             .then(function () {
-                                this.status = 'errorshown';
+                                // anything to do?
                             }.bind(this))
                             .catch(function (err) {
                                 this.setError(err);
@@ -571,35 +581,14 @@ define([
             },
             setError: {
                 value: function (errorValue) {
-                    console.error('ERROR');
-                    console.error(errorValue);
-                    console.log(this);
+                    Logger.logError({
+                        source: 'Dashboard/' + this.widgetName,
+                        title: 'ERROR in ' + this.widgetName,
+                        data: errorValue
+                    });
                     this.status = 'error';
                     this.error = errorValue;
-                    return;
 
-                    var errorText;
-                    if (typeof errorValue === 'string') {
-                        errorText = errorValue;
-                    } else if (typeof errorValue === 'object') {
-                        if (errorValue.message) {
-                            errorText = errorValue.message;
-                        } else if (errorValue.status && errorValue.error && errorValue.error.message) {
-                            // a service error:
-                            errorTitle = 'Service Error ' + errorValue.status;
-                            errorText = errorValue.error.message;
-                        } else {
-                            errorText = 'Unknown error';
-                        }
-                    }
-                    this.error = {
-                        title: errorTitle,
-                        message: errorText,
-                        original: errorValue
-                    };
-                    this.status = 'error';
-                    this.render();
-                    // this.refresh().done();
                 }
             },
             checkState: {

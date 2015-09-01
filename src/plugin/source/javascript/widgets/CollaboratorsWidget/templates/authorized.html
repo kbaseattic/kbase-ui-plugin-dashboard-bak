@@ -1,4 +1,4 @@
-<div class="collapse" id="{{env.widgetName}}-more-info-{{env.instanceId}}">
+<div class="collapse" id="{{env.widgetName}}-more-info-{{env.generatedId}}">
    <div class="well">
       <p>This table shows your "Collaborators" - other KBase users who have access to Narratives to which you also have access.</p>
    </div>
@@ -12,7 +12,7 @@ You do not yet have any collaborators. To gain collaborators, you need to create
 
 {% else  %}
 
-<table class="table" id="collaborator_table_{{env.instanceId}}">
+<table class="table" id="collaborator_table_{{env.generatedId}}">
 	<thead>
 	<tr>
 		<th>Name</th>
@@ -23,7 +23,7 @@ You do not yet have any collaborators. To gain collaborators, you need to create
 	<tbody>
 {% for user in state.collaborators %}
 	<tr>
-		<td><a href="/functional-site/#/people/{{user.username}}">{{user.realname}}</a></td>
+		<td><a href="#/people/{{user.username}}">{{user.realname}}</a></td>
 		<td>{{user.username}}</td>
 		<td class="number">{{user.count}}</td>
 	</tr>
@@ -35,7 +35,7 @@ You do not yet have any collaborators. To gain collaborators, you need to create
 
 <script>
 require(['jquery', 'datatables', 'datatables_bootstrap'], function ($) {
-    $('#collaborator_table_{{env.instanceId}}').dataTable({
+    $('#collaborator_table_{{env.generatedId}}').dataTable({
         initComplete: function (settings) {
             var api = this.api();
             var rowCount = api.data().length;
