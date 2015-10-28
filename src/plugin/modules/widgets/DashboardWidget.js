@@ -1,17 +1,15 @@
 define([
     'nunjucks', 
-    'jquery', 
+    'jquery',
     'bluebird', 
-    'kb.html',
-    'kb.runtime', 
-    'kb.session', 
-    'kb.utils', 
-    'kb_user_profile', 
-    'postal',
-    'kb.logger',
+    'kb_common_html',
+    'kb_common_utils', 
+    'kb_userprofile_userProfile', 
+    'kb_common_logger',
+    'kb_common_gravatar',
     'kb_plugin_dashboard'
 ],
-    function (nunjucks, $, Promise, html, R, Session, Utils, UserProfile, Postal, Logger, Plugin) {
+    function (nunjucks, $, Promise, html, Utils, UserProfile, Logger, gravatar, Plugin) {
         "use strict";
         var DashboardWidget = Object.create({}, {
             // The init function interfaces this object with the caller, and sets up any 
@@ -37,14 +35,25 @@ define([
                     // Note that params may change. E.g. the user may select another 
                     // member profile to view.
                     this.params = {};
+                    
+                    this.runtime = cfg.runtime;
+                    if (!this.runtime) {
+                        throw {
+                            type: 'ArgumentError',
+                            reason: 'RuntimeMissing',
+                            message: 'The runtime is required for a dashboard widget.'
+                        };
+                    }
+                    
+                    this.container = cfg.container;
 
                     // Also the userId is required -- this is the user for whom the social widget is concerning.
                     // by convention, if the userId is empty, we use the current logged in user.
                     // This allows creating links to social widgets in some contexts in which the username can't be
                     // placed onto the url.
                     if (Utils.isBlank(cfg.userId)) {
-                        if (R.isLoggedIn()) {
-                            this.params.userId = R.getUsername();
+                        if (this.runtime.getService('session').isLoggedIn()) {
+                            this.params.userId = this.runtime.getService('session').getUsername();
                         }
                     } else {
                         this.params.userId = cfg.userId;
@@ -89,8 +98,8 @@ define([
                     //   /src/widgets/WIDGETNAME/templates
                     this.templates = {};
                     var loaders = [                        
-                        new nunjucks.WebLoader(Plugin.plugin.path + '/javascript/widgets/' + this.widgetName + '/templates', true),
-                        new nunjucks.WebLoader(Plugin.plugin.path + '/javascript/widgets/DashboardWidget/templates', true)
+                        new nunjucks.WebLoader(Plugin.plugin.path + '/' + this.widgetName + '/templates', true),
+                        new nunjucks.WebLoader(Plugin.plugin.path + '/DashboardWidget/templates', true)
                     ];
                     this.templates.env = new nunjucks.Environment(loaders, {
                         'autoescape': false
@@ -136,7 +145,7 @@ define([
                     // default option.
                     this.templates.env.addFilter('gravatar', function (email, size, rating, gdefault) {
                         // TODO: http/https.
-                        return UserProfile.makeGravatarURL(email, size, rating, gdefault);
+                        return gravatar.make().makeGravatarUrl(email, size, rating, gdefault);
                     }.bind(this));
                     this.templates.env.addFilter('kbmarkup', function (s) {
                         if (s) {
@@ -236,6 +245,10 @@ define([
                     this.templates.env.addGlobal('randomNumber', function (from, to) {
                         return Math.floor(from + Math.random() * (to - from));
                     });
+                    
+                    this.templates.env.addGlobal('getConfig', function (prop) {
+                        return this.runtime.getConfig(prop);
+                    }.bind(this));
 
                     // This is the cache of templates.
                     this.templates.cache = {};
@@ -245,7 +258,10 @@ define([
                     this.context.env = {
                         widgetTitle: this.widgetTitle,
                         widgetName: this.widgetName,
-                        docsite: R.getConfig('docsite')
+                        docsite: this.runtime.getConfig('docsite'),
+                        getConfig: function (prop) {
+                            return this.runtime.getConfig(prop);
+                        }.bind(this)
                     };
                     // NB this means that when clearing state or params, the object
                     // should not be blown away.
@@ -328,7 +344,7 @@ define([
             },
             setupAuth: {
                 value: function () {
-                    Session.refreshSession();
+                    
                 }
             },
             
@@ -354,8 +370,7 @@ define([
                             if (this.afterStart) {
                                 this.afterStart();
                             }
-                        }.bind(this))
-                        .done();
+                        }.bind(this));
                     return this;
                 }
             },
@@ -363,25 +378,24 @@ define([
                 value: function () {
                     // Set up listeners for any kbase events we are interested in:
                     this.subscriptions = [];
-                    this.subscriptions.push(Postal.channel('session').subscribe('login.success', function (data) {
+                    this.subscriptions.push(this.runtime.recv('session', 'login.success', function (data) {
                         this.onLoggedIn(data.session);
                     }.bind(this)));
 
-                    this.subscriptions.push(Postal.channel('session').subscribe('logout.success', function () {
+                    this.subscriptions.push(this.runtime.recv('session', 'logout.success', function () {
                         this.onLoggedOut();
                     }.bind(this)));
 
-                    this.subscriptions.push(Postal.channel('app').subscribe('heartbeat', function (data) {
+                    this.subscriptions.push(this.runtime.recv('app', 'heartbeat', function (data) {
                         this.handleHeartbeat(data);
                     }.bind(this)));
-
                 }
             },
             stopSubscriptions: {
                 value: function () {
                     if (this.subscriptions) {
                         this.subscriptions.forEach(function (sub) {
-                            sub.unsubscribe();
+                            this.runtime.drop(sub);
                         });
                         this.subscriptions = [];
                     }
@@ -672,9 +686,9 @@ define([
 
                     // We need to ensure that the context reflects the current auth state.
                     this.context.env.generatedId = this.genId();
-                    this.context.env.loggedIn = R.isLoggedIn();
-                    if (R.isLoggedIn()) {
-                        this.context.env.loggedInUser = R.getUsername();
+                    this.context.env.loggedIn = this.runtime.getService('session').isLoggedIn();
+                    if (this.runtime.service('session').isLoggedIn()) {
+                        this.context.env.loggedInUser = this.runtime.getService('session').getUsername();
                         //this.context.env.loggedInUserRealName = Session.getUserRealName();
                     } else {
                         delete this.context.env.loggedInUser;
@@ -767,7 +781,7 @@ define([
                     try {
                         if (this.status === 'error' || this.error) {
                             this.renderError();
-                        } else if (R.isLoggedIn()) {
+                        } else if (this.runtime.getService('session').isLoggedIn()) {
                             //if (this.initialStateSet) {
                             this.setTitle(this.widgetTitle);
                             this.places.content.html(this.renderTemplate('authorized'));
@@ -850,7 +864,7 @@ define([
             },
             loadCSS: {
                 value: function () {
-                    this.loadCSSResource('/src/widgets/dashboard/' + this.widgetName + '/style.css');
+                    this.loadCSSResource(Plugin.plugin.path + '/resources/' + this.widgetName + '/style.css');
                 }
             },
             renderMessages: {

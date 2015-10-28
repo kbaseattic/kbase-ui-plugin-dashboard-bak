@@ -7,11 +7,10 @@
  */
 
 define([
-    'kb_widget_dashboard_base', 
-    'kb.client.methods', 
-    'kb.appstate', 
+    'kb_dashboard_widget_base', 
+    'kb_service_api', 
     'bluebird'],
-   function (DashboardWidget, ClientMethods, AppState, Promise) {
+   function (DashboardWidget, ServiceApi, Promise) {
       'use strict';
       var Widget = Object.create(DashboardWidget, {
          init: {
@@ -19,7 +18,6 @@ define([
                cfg.name = 'CollaboratorsWidget';
                cfg.title = 'Common Collaborator Network';
                this.DashboardWidget_init(cfg);
-
                return this;
             }
          },
@@ -27,8 +25,8 @@ define([
          setup: {
             value: function () {
                // Set up workspace client
-               if (AppState.getItem('session').isLoggedIn()) {
-                  this.clientMethods = Object.create(ClientMethods).init();
+               if (this.runtime.service('session').isLoggedIn()) {
+                  this.serviceApi = ServiceApi.make({runtime: this.runtime});
                } else {
                   this.userProfileClient = null;
                }
@@ -38,10 +36,10 @@ define([
          setInitialState: {
             value: function () {
                return new Promise(function (resolve, reject) {
-                  if (!AppState.getItem('session').isLoggedIn()) {
+                  if (!this.runtime.getService('session').isLoggedIn()) {
                      resolve();
                   } else {
-                    this.clientMethods.getCollaborators()
+                    this.serviceApi.getCollaborators()
                     .then(function (collaborators) {
                        this.setState('collaborators', collaborators);
                        resolve();

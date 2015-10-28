@@ -11,47 +11,91 @@ source:
     ## NB: need to quote file names, otherwise 
     modules:
         -
-            module: kb_panel_dashboard
-            file: panel
+            module: kb_dashboard_panel
+            file: dashboardPanel
         -
-            module: kb_widget_dashboard_base
-            file: "widgets/DashboardWidget"
+            module: kb_dashboard_widget_apps
+            file: widgets/AppsWidget
+            css: true
+#        -
+#            module: kb_widget_dashboard_apps
+#            file: "widgets/AppsWidget"
         -
-            module: kb_widget_dashboard_apps
-            file: "widgets/AppsWidget"
+            module: kb_dashboard_widget_base
+            file: widgets/DashboardWidget
         -
-            module: kb_widget_dashboard_collaborators
-            file: "widgets/CollaboratorsWidget"
+            module: kb_dashboard_widget_collaborators
+            file: widgets/CollaboratorsWidget
+#        -
+#            module: kb_dashboard_widget_data
+#            file: "widgets/DataWidget"
         -
-            module: kb_widget_dashboard_data
-            file: "widgets/DataWidget"
-        -
-            module: kb_widget_dashboard_metrics
+            module: kb_dashboard_widget_metrics
             file: "widgets/MetricsWidget"
         -
-            module: kb_widget_dashboard_narratives
-            file: "widgets/NarrativesWidget"
+            module: kb_dashboard_widget_narratives
+            file: widgets/NarrativesWidget
         -
-            module: kb_widget_dashboard_publicNarratives
-            file: "widgets/PublicNarrativesWidget"
+            module: kb_dashboard_widget_publicNarratives
+            file: widgets/PublicNarrativesWidget
         -
-            module: kb_widget_dashboard_sharedNarratives
-            file: "widgets/SharedNarrativesWidget"
+            module: kb_dashboard_widget_sharedNarratives
+            file: widgets/SharedNarrativesWidget
         -
-            module: kb_widget_dashboard_profile
+            module: kb_dashboard_widget_profile
             file: "widgets/ProfileWidget"
        
     styles:
         -
             file: styles.css
 install:
+    widgets:
+        -
+            module: kb_dashboard_panel
+            id: dashboardPanel
+            type: factory
+        -
+            module: kb_dashboard_widget_apps
+            id: dashboardApps
+            type: factory
+        -
+            module: kb_dashboard_widget_collaborators
+            id: dashboardCollaborators
+            type: object
+##        -
+#            module: kb_dashboard_widget_data
+#            id: dashboardData
+#            type: factory
+        -
+            module: kb_dashboard_widget_metrics
+            id: dashboardMetrics
+            type: object
+        -
+            module: kb_dashboard_widget_narratives
+            id: dashboardNarratives
+            type: object
+        -
+            module: kb_dashboard_widget_publicNarratives
+            id: dashboardPublicNarratives
+            type: object
+        -
+            module: kb_dashboard_widget_sharedNarratives
+            id: dashboardSharedNarratives
+            type: object
+        -
+            module: kb_dashboard_widget_profile
+            id: dashboardProfile
+            type: object
+            
     routes:
         -
             path: ['dashboard']
-            panelFactory: kb_panel_dashboard
+            widget: dashboardPanel
+            authorization: true
     menu:
         -
             name: dashboard
+            menus: ['authenticated']
             definition:
                 path: ['dashboard']
                 label: Dashbaord

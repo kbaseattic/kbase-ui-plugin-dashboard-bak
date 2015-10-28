@@ -1,9 +1,8 @@
 define([
     'bluebird',
-    'kb_widget_dashboard_base',
-    'kb_data'
+    'kb_dashboard_widget_base'
 ],
-    function (Promise, DashboardWidget, data) {
+    function (Promise, DashboardWidget) {
         'use strict';
         return Object.create(DashboardWidget, {
             init: {
@@ -294,8 +293,9 @@ define([
             setInitialState: {
                 value: function () {
                     return new Promise(function (resolve, reject) {
-                        Promise.all([data.getJSON({path: 'metrics', file: 'narrative_histogram'}),
-                            data.getJSON({path: 'metrics', file: 'narrative_sharing_histogram'}),
+                        Promise.all([
+                            this.runtime.service('data').getJson({path: 'metrics', file: 'narrative_histogram'}),
+                            this.runtime.service('data').getJson({path: 'metrics', file: 'narrative_sharing_histogram'}),
                             this.viewState.whenItem('narratives', 60000)
                         ])
                             .then(function (data) {
@@ -309,8 +309,7 @@ define([
                             }.bind(this))
                             .catch(function (err) {
                                 reject(err);
-                            })
-                            .done();
+                            });
                     }.bind(this));
                 }
             }

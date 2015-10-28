@@ -1,5 +1,19 @@
-define(['jquery', 'postal', 'kb.utils', 'kb.utils.api', 'kb_widget_dashboard_base', 'kb.client.methods', 'kb.session', 'kb.widget.buttonbar', 'bluebird', 'bootstrap'],
-   function ($, Postal, Utils, APIUtils, DashboardWidget, KBService, Session, Buttonbar, Promise) {
+/*global
+ define, require
+ */
+/*jslint
+ browser: true,
+ white: true
+ */
+define([
+    'jquery', 
+    'kb_dashboard_widget_base', 
+    'kb_service_api', 
+    'kb_widget_buttonBar', 
+    'bluebird', 
+    'bootstrap'
+],
+   function ($, DashboardWidget, ServiceApi, Buttonbar, Promise) {
       "use strict";
       var widget = Object.create(DashboardWidget, {
          init: {
@@ -33,7 +47,7 @@ define(['jquery', 'postal', 'kb.utils', 'kb.utils.api', 'kb_widget_dashboard_bas
          },
          setup: {
             value: function () {
-               this.kbservice = Object.create(KBService).init();
+               this.kbservice = ServiceApi.make({runtime: this.runtime});
             }
          },
 
@@ -105,7 +119,7 @@ define(['jquery', 'postal', 'kb.utils', 'kb.utils.api', 'kb_widget_dashboard_bas
                // Head off at the pass -- if not logged in, can't show profile.
                if (this.error) {
                   this.renderError();
-               } else if (Session.isLoggedIn()) {
+               } else if (this.runtime.getService('session').isLoggedIn()) {
                   this.places.title.html(this.widgetTitle);
                   this.places.content.html(this.renderTemplate(this.view));
                } else {
@@ -186,7 +200,7 @@ define(['jquery', 'postal', 'kb.utils', 'kb.utils.api', 'kb_widget_dashboard_bas
                return new Promise(function (resolve, reject, notify) {
                   // Get all workspaces, filter out those owned by the user,
                   // and those that are public
-                  if (!Session.isLoggedIn()) {
+                  if (!this.runtime.getService('session').isLoggedIn()) {
                      resolve();
                      return;
                   }
@@ -230,13 +244,13 @@ define(['jquery', 'postal', 'kb.utils', 'kb.utils.api', 'kb_widget_dashboard_bas
                         // permission ('n' in this case means "no sharing permission" not "no permission"
                         // because clearly globally shared narratives carrry that permission to everyone!)
                         narratives = narratives.filter(function (x) {
-                           if (x.workspace.owner === Session.getUsername() ||
+                           if (x.workspace.owner === this.runtime.getService('session').getUsername() ||
                               x.workspace.user_permission !== 'n') {
                               return false;
                            } else {
                               return true;
                            }
-                        });
+                        }.bind(this));
 
                         this.kbservice.getPermissions(narratives)
                            .then(function (narratives) {

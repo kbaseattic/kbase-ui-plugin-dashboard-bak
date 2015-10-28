@@ -1,13 +1,19 @@
+/*global
+ define, require
+ */
+/*jslint
+ browser: true,
+ white: true
+ */
 define([
     'jquery',
     'bluebird',
-    'kb_widget_dashboard_base',
-    'kb.client.methods',
-    'kb.runtime',
-    'kb.widget.buttonbar',
+    'kb_dashboard_widget_base',
+    'kb_service_api',
+    'kb_widget_buttonBar',
     'bootstrap'
 ],
-    function ($, Promise, DashboardWidget, KBService, R, Buttonbar) {
+    function ($, Promise, DashboardWidget, ServiceAPI, ButtonBar) {
         'use strict';
         var widget = Object.create(DashboardWidget, {
             init: {
@@ -42,18 +48,18 @@ define([
 
                     // The workspace will get the common settings -- url and auth token -- from the appropriate
                     // singleton modules (Session, Config)
-                    this.kbservice = Object.create(KBService).init();
+                    this.kbservice = ServiceAPI.make({runtime: this.runtime});
                 }
             },
             getViewTemplate: {
                 value: function () {
                     if (this.error) {
                         return 'error';
-                    } else if (R.isLoggedIn()) {
-                        return 'slider';
-                    } else {
-                        return 'unauthorized';
                     }
+                    if (this.runtime.getService('session').isLoggedIn()) {
+                        return 'slider';
+                    }
+                    return 'unauthorized';
                 }
             },
             render: {
@@ -71,7 +77,7 @@ define([
             setupUI: {
                 value: function () {
                     if (this.hasState('narratives') && this.getState('narratives').length > 0) {
-                        this.buttonbar = Object.create(Buttonbar).init({
+                        this.buttonbar = Object.create(ButtonBar).init({
                             container: this.container.find('[data-placeholder="buttonbar"]')
                         });
                         this.buttonbar
@@ -85,27 +91,6 @@ define([
                                 url: '#/narrativemanager/new',
                                 external: true
                             })
-                            /*.addRadioToggle({
-                             buttons: [
-                             {
-                             label: 'Slider',
-                             active: true,
-                             class: 'btn-kbase',
-                             callback: function (e) {
-                             this.view = 'slider';
-                             this.refresh();
-                             }.bind(this)
-                             },
-                             {
-                             label: 'Table',
-                             class: 'btn-kbase',
-                             callback: function (e) {
-                             this.view = 'table';
-                             this.refresh();
-                             }.bind(this)
-                             }]
-                             })
-                             */
                             .addInput({
                                 placeholder: 'Search Your Narratives',
                                 place: 'end',
@@ -118,13 +103,13 @@ define([
             },
             filterNarratives: {
                 value: function () {
-                    var search = this.getParam('filter');
+                    var search = this.getParam('filter'),
+                        searchRe = new RegExp(search, 'i'), nar;
                     if (!search || search.length === 0) {
                         this.setState('narrativesFiltered', this.getState('narratives'));
                         return;
                     }
-                    var searchRe = new RegExp(search, 'i');
-                    var nar = this.getState('narratives').filter(function (x) {
+                    nar = this.getState('narratives').filter(function (x) {
                         if (x.workspace.metadata.narrative_nice_name.match(searchRe) ||
                             (x.object.metadata.cellInfo &&
                                 (function (apps) {
@@ -203,7 +188,7 @@ define([
             setInitialState: {
                 value: function (options) {
                     return new Promise(function (resolve, reject) {
-                        if (!R.isLoggedIn()) {
+                        if (!this.runtime.getService('session').isLoggedIn()) {
                             // ensure that all state is zapped.
                             this.deleteState();
                             resolve();
@@ -212,7 +197,7 @@ define([
                         Promise.all([this.kbservice.getNarratives({
                                 params: {
                                     showDeleted: 0,
-                                    owners: [R.getUsername()]
+                                    owners: [this.runtime.getService('session').getUsername()]
                                 }
                             }),
                             this.kbservice.getApps(),
