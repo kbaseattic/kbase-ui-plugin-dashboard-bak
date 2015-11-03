@@ -864,7 +864,7 @@ define([
             },
             loadCSS: {
                 value: function () {
-                    this.loadCSSResource(Plugin.plugin.path + '/resources/' + this.widgetName + '/style.css');
+                    this.loadCSSResource(Plugin.plugin.path + '/' + this.widgetName + '/style.css');
                 }
             },
             renderMessages: {
